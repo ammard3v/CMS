@@ -1,0 +1,176 @@
+﻿Imports System.Data.SqlClient
+Imports System.Data
+
+Public Class Student
+
+    Dim connectionString As String = "Data Source=DESKTOP-TV2H6SR;Initial Catalog=student;Integrated Security=True;"
+    Dim connection As New SqlConnection(connectionString)
+    Dim ds As DataSet
+    Dim maxrow As Integer = 0
+    Dim inc As Integer = 0
+    Dim dashboard As Dashboard
+
+    Public Sub New(Optional ByVal dashboard As Dashboard = Nothing)
+        InitializeComponent()
+        Me.dashboard = dashboard
+    End Sub
+
+    Sub DisplayRecords()
+        Try
+            Dim cmd As New SqlCommand("SELECT * FROM STable", connection)
+            Dim da As New SqlDataAdapter(cmd)
+            ds = New DataSet
+            da.Fill(ds, "STable")
+            StudentsDGV.DataSource = ds.Tables("STable")
+            inc = 0
+            maxrow = ds.Tables("STable").Rows.Count
+        Catch ex As Exception
+            MessageBox.Show("Error while displaying records: " & ex.Message)
+        End Try
+    End Sub
+
+    Sub ClearControls()
+        txtSname.Clear()
+        txtSfees.Clear()
+        txtSPno.Clear()
+        txtSgender.SelectedIndex = -1
+        txtSdept.SelectedIndex = -1
+        txtSname.Focus()
+    End Sub
+
+    Private Sub StudentsDGV_CellClick(sender As Object, e As DataGridViewCellEventArgs) Handles StudentsDGV.CellClick
+        If e.RowIndex >= 0 Then
+            Dim row As DataGridViewRow = StudentsDGV.Rows(e.RowIndex)
+            txtSname.Text = row.Cells("Sname").Value.ToString()
+            txtSgender.SelectedItem = row.Cells("Sgender").Value.ToString()
+            txtSDOB.Text = row.Cells("Sdob").Value.ToString()
+            txtSPno.Text = row.Cells("Spno").Value.ToString()
+            txtSdept.Text = row.Cells("Sdept").Value.ToString()
+            txtSfees.Text = row.Cells("Sfees").Value.ToString()
+        End If
+    End Sub
+
+    Private Sub btnSave_Click(sender As Object, e As EventArgs) Handles btnSave.Click
+        Try
+            Dim cmd As New SqlCommand("INSERT INTO STable (Sname, Sgender, Sdob, Sdept, Spno, Sfees) VALUES (@Name, @Gender, @DOB, @Department, @MobileNo, @Fees)", connection)
+
+            cmd.Parameters.Add("@Name", SqlDbType.NVarChar, 50).Value = txtSname.Text
+            cmd.Parameters.Add("@Gender", SqlDbType.NVarChar, 50).Value = txtSgender.SelectedItem.ToString()
+            cmd.Parameters.Add("@DOB", SqlDbType.Date).Value = txtSDOB.Value
+            cmd.Parameters.Add("@Department", SqlDbType.NVarChar, 50).Value = txtSdept.Text
+            cmd.Parameters.Add("@MobileNo", SqlDbType.Int).Value = CInt(txtSPno.Text)
+            cmd.Parameters.Add("@Fees", SqlDbType.Int).Value = CInt(txtSfees.Text)
+
+            connection.Open()
+            Dim flag As Integer = cmd.ExecuteNonQuery()
+            connection.Close()
+
+            If flag > 0 Then
+                MessageBox.Show("Record Inserted")
+                DisplayRecords()
+                ClearControls()
+            Else
+                MessageBox.Show("Record not Inserted")
+            End If
+        Catch ex As Exception
+            MessageBox.Show("Error while saving record: " & ex.Message)
+        Finally
+            If connection.State = ConnectionState.Open Then
+                connection.Close()
+            End If
+        End Try
+    End Sub
+
+    Private Sub btnUpdate_Click(sender As Object, e As EventArgs) Handles btnUpdate.Click
+        Try
+            Dim cmd As New SqlCommand("UPDATE STable SET Sname = @Name, Sgender = @Gender, Sdob = @DOB, Sdept = @Department, Spno = @MobileNo, Sfees = @Fees WHERE ID = @Id", connection)
+
+            cmd.Parameters.Add("@Name", SqlDbType.NVarChar, 50).Value = txtSname.Text
+            cmd.Parameters.Add("@Gender", SqlDbType.NVarChar, 50).Value = txtSgender.SelectedItem.ToString()
+            cmd.Parameters.Add("@DOB", SqlDbType.Date).Value = txtSDOB.Value
+            cmd.Parameters.Add("@Department", SqlDbType.NVarChar, 50).Value = txtSdept.Text
+            cmd.Parameters.Add("@MobileNo", SqlDbType.Int).Value = CInt(txtSPno.Text)
+            cmd.Parameters.Add("@Fees", SqlDbType.Int).Value = CInt(txtSfees.Text)
+            cmd.Parameters.Add("@Id", SqlDbType.Int).Value = Convert.ToInt32(StudentsDGV.CurrentRow.Cells("ID").Value)
+
+            connection.Open()
+            Dim flag As Integer = cmd.ExecuteNonQuery()
+            connection.Close()
+
+            If flag > 0 Then
+                MessageBox.Show("Record Updated.")
+                DisplayRecords()
+                ClearControls()
+            Else
+                MessageBox.Show("Record not Updated.")
+            End If
+        Catch ex As Exception
+            MessageBox.Show("Error while updating record: " & ex.Message)
+        Finally
+            If connection.State = ConnectionState.Open Then
+                connection.Close()
+            End If
+        End Try
+    End Sub
+
+    Private Sub btnDelete_Click(sender As Object, e As EventArgs) Handles btnDelete.Click
+        Try
+            Dim cmd As New SqlCommand("DELETE FROM STable WHERE ID = @Id", connection)
+            cmd.Parameters.Add("@Id", SqlDbType.Int).Value = Convert.ToInt32(StudentsDGV.CurrentRow.Cells("ID").Value)
+
+            connection.Open()
+            Dim flag As Integer = cmd.ExecuteNonQuery()
+            connection.Close()
+
+            If flag > 0 Then
+                MessageBox.Show("Record Deleted.")
+                DisplayRecords()
+                ClearControls()
+
+            Else
+                MessageBox.Show("Record not Deleted.")
+            End If
+        Catch ex As Exception
+            MessageBox.Show("Error while deleting record: " & ex.Message)
+        Finally
+            If connection.State = ConnectionState.Open Then
+                connection.Close()
+            End If
+        End Try
+    End Sub
+
+    Private Sub btnShow_Click(sender As Object, e As EventArgs) Handles btnShow.Click
+        DisplayRecords()
+    End Sub
+
+    Private Sub btnClear_Click(sender As Object, e As EventArgs) Handles btnClear.Click
+        ClearControls()
+    End Sub
+
+    Private Sub Student_Load(sender As Object, e As EventArgs) Handles MyBase.Load
+        DisplayRecords()
+    End Sub
+
+    Private Sub Button1_Click(sender As Object, e As EventArgs) Handles Button1.Click
+        Dim result = MessageBox.Show("Are you sure ?", "Confirmation", MessageBoxButtons.YesNo)
+        If result = DialogResult.Yes Then
+            Dim LoginForm As New Login()
+            LoginForm.Show()
+            Me.Hide()
+            Application.Exit()
+        End If
+
+    End Sub
+
+    Private Sub Button2_Click(sender As Object, e As EventArgs) Handles Button2.Click
+        Dim FeesForm As New Fees()
+        FeesForm.Show()
+        Me.Hide()
+    End Sub
+
+    Private Sub Button4_Click(sender As Object, e As EventArgs) Handles Button4.Click
+        Dim dashboardForm As New Dashboard()
+        dashboardForm.Show()
+        Me.Hide()
+    End Sub
+End Class
